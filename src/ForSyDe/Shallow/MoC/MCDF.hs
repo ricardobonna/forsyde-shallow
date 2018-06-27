@@ -23,7 +23,7 @@ module ForSyDe.Shallow.MoC.MCDF (
   -- MCDF-library provides Switches, Selects and tunnels
   switchMCDF, selectMCDF, tunnelMCDF,
   -- Tests
-  switchtest, selecttest
+  switchtest, selecttest, tunneltest
   ) where
 
 import ForSyDe.Shallow.Core
@@ -83,7 +83,9 @@ selectMCDF n tcp ct s
         consumed_tokens = takeS c sig
 
 tunnelMCDF :: Int -> (Int, Int) -> [a] -> Signal Int -> Signal a -> Signal a
-tunnelMCDF c (m1, m2) v0 ct s = out
+tunnelMCDF c (m1, m2) v0 ct s
+  | length v0 /= c = error "tunnelMCDF: Mismatch between the number of consumed tokens and initial tokens"
+  | otherwise = out
   where (out, fb) = buffer c (m1, m2) ct s fb'
         fb' = delayMCDF v0 fb
 
@@ -114,9 +116,10 @@ buffer :: Int -> (Int, Int) -> Signal Int -> Signal a -> Signal a -> (Signal a, 
 buffer _ _ NullS _ _ = (NullS, NullS)
 buffer _ _ _ _ NullS = (NullS, NullS)
 buffer c (m1, m2) (mode:-cts) s1 s2
-  | mode == m1 = if sufficient_tokens c s1 then (NullS +-+ s1m1, takeS c s1 +-+ s2m1)
+  | mode == m1 = if sufficient_tokens c s1 then (s1m1, takeS c s1 +-+ s2m1)
                   else (NullS, NullS)
   | mode == m2 = (takeS c s2 +-+ s1m2, takeS c s2 +-+ s2m2)
+  | otherwise = buffer c (m1, m2) cts s1 s2
   where (s1m1, s2m1) = buffer c (m1, m2) cts (dropS c s1) (dropS c s2)
         (s1m2, s2m2) = buffer c (m1, m2) cts s1 (dropS c s2)
 
@@ -125,8 +128,10 @@ buffer c (m1, m2) (mode:-cts) s1 s2
 -- Tests
 --------------------------------------------
 ct = signal [0,1,0,2,0,2,1,0]
+ct2 = signal [0,1,0,1,0,1,1,0]
 inp1 = signal [1 .. 30]
 inp2 = signal [31 .. 60]
 inp3 = signal [61 .. 90]
 switchtest = switchMCDF 3 [1, 2, 3] ct inp1
 selecttest = selectMCDF 3 [1, 2, 3] ct [inp1, inp2, inp3]
+tunneltest = tunnelMCDF 2 (0,1) [0,0] ct2 inp1
