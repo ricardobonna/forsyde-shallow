@@ -20,7 +20,7 @@ module ForSyDe.Shallow.MoC.MCDF (
   delayMCDF,
   -- * Data dependent actors
   -- | Based on the process constructors in the MCDF-MoC, the
-  -- MCDF-library provides Switches, Selects and tunnels
+  -- MCDF-library provides Switches, Selects and Tunnels
   switchMCDF, selectMCDF, tunnelMCDF,
   -- Tests
   switchtest, selecttest, tunneltest
@@ -50,38 +50,36 @@ delayMCDF initial_tokens xs = signal initial_tokens +-+ xs
 
 -- | The process constructor 'switchMCDF' implements a switch process with
 --   n modes where each mode, selected by each event in the control singnal ct,
---   consumes a number of tokens defined by the list tcp.
-switchMCDF :: Int -> [Int] -> Signal Int -> Signal a -> [Signal a]
-switchMCDF n tcp ct s
-  | length tcp /= n = error "switchMCDF: Mismatch between number of modes and token consumption list"
-  | minimum tcp <= 0 = error "switchMCDF: Token production must be a positive integer"
-  | ct == NullS = replicate n NullS
+--   consumes a number of tokens defined by c.
+switchMCDF :: Int -> Int -> Signal Int -> Signal a -> [Signal a]
+switchMCDF n _ NullS _ = replicate n NullS
+switchMCDF n c (mode:-cts) s
+  | c <= 0 = error "switchMCDF: Token production must be a positive integer"
   | mode >= n = error "switchMCDF: Outside mode range"
   | not $ sufficient_tokens c s = replicate n NullS
   | otherwise = ((replicate mode NullS) ++ [consumed_tokens] ++ (replicate (n-mode-1) NullS))
-                  +|+ switchMCDF n tcp (tailS ct) (dropS c s)
-  where mode = headS ct
-        c = tcp !! mode
-        consumed_tokens = takeS c s
+                  +|+ switchMCDF n c cts (dropS c s)
+  where consumed_tokens = takeS c s
 
 
 -- | The process constructor 'selectMCDF' implements a select process with
 --   n modes where each mode, selected by each event in the control singnal ct,
---   consumes a number of tokens defined by the list tcp.
-selectMCDF :: Int -> [Int] -> Signal Int -> [Signal a] -> Signal a
-selectMCDF n tcp ct s
-  | length tcp /= n = error "selectMCDF: Mismatch between number of modes and token consumption list"
+--   consumes a number of tokens defined by c.
+selectMCDF :: Int -> Int -> Signal Int -> [Signal a] -> Signal a
+selectMCDF _ _ NullS _ = NullS
+selectMCDF n c (mode:-cts) s
   | length s /= n = error "selectMCDF: Mismatch between number of inputs and modes"
-  | minimum tcp <= 0 = error "selectMCDF: Token production must be a positive integer"
-  | ct == NullS = NullS
+  | c <= 0 = error "selectMCDF: Token production must be a positive integer"
   | mode >= n = error "selectMCDF: Outside mode range"
   | not $ sufficient_tokens c sig = NullS
-  | otherwise = consumed_tokens +-+ selectMCDF n tcp (tailS ct) (take mode s ++ [dropS c sig] ++ drop (mode+1) s)
-  where mode = headS ct
-        c = tcp !! mode
-        sig = s !! mode
+  | otherwise = consumed_tokens +-+ selectMCDF n c cts (take mode s ++ [dropS c sig] ++ drop (mode+1) s)
+  where sig = s !! mode
         consumed_tokens = takeS c sig
 
+
+-- | The process constructor 'tunnelMCDF' implements a tunnel process between
+--   an actor from a mode m1 to a mode m2 with token consumption defined by c
+--   and initial conditions given by the list v0.
 tunnelMCDF :: Int -> (Int, Int) -> [a] -> Signal Int -> Signal a -> Signal a
 tunnelMCDF c (m1, m2) v0 ct s
   | length v0 /= c = error "tunnelMCDF: Mismatch between the number of consumed tokens and initial tokens"
@@ -132,6 +130,6 @@ ct2 = signal [0,1,0,1,0,1,1,0]
 inp1 = signal [1 .. 30]
 inp2 = signal [31 .. 60]
 inp3 = signal [61 .. 90]
-switchtest = switchMCDF 3 [1, 2, 3] ct inp1
-selecttest = selectMCDF 3 [1, 2, 3] ct [inp1, inp2, inp3]
+switchtest = switchMCDF 3 2 ct inp1
+selecttest = selectMCDF 3 2 ct [inp1, inp2, inp3]
 tunneltest = tunnelMCDF 2 (0,1) [0,0] ct2 inp1
