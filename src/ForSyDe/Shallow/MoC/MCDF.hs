@@ -13,7 +13,6 @@
 -----------------------------------------------------------------------------
 
 module ForSyDe.Shallow.MoC.MCDF (
-  (+|+),
   -- * Sequential Process Constructors
   -- | Sequential process constructors are used for processes that
   -- have a state. One of the input parameters is the initial state.
@@ -54,10 +53,10 @@ delayMCDF initial_tokens xs = signal initial_tokens +-+ xs
 switchMCDF :: Int -> Int -> Signal Int -> Signal a -> [Signal a]
 switchMCDF n _ NullS _ = replicate n NullS
 switchMCDF n c (mode:-cts) s
-  | c <= 0 = error "switchMCDF: Token production must be a positive integer"
-  | mode >= n = error "switchMCDF: Outside mode range"
+  | c <= 0 = error "switchMCDF: Token consumption/production must be a positive integer"
+  | mode > n && mode < 1 = error "switchMCDF: Outside mode range"
   | not $ sufficient_tokens c s = replicate n NullS
-  | otherwise = ((replicate mode NullS) ++ [consumed_tokens] ++ (replicate (n-mode-1) NullS))
+  | otherwise = ((replicate (mode-1) NullS) ++ [consumed_tokens] ++ (replicate (n-mode) NullS))
                   +|+ switchMCDF n c cts (dropS c s)
   where consumed_tokens = takeS c s
 
@@ -69,11 +68,11 @@ selectMCDF :: Int -> Int -> Signal Int -> [Signal a] -> Signal a
 selectMCDF _ _ NullS _ = NullS
 selectMCDF n c (mode:-cts) s
   | length s /= n = error "selectMCDF: Mismatch between number of inputs and modes"
-  | c <= 0 = error "selectMCDF: Token production must be a positive integer"
-  | mode >= n = error "selectMCDF: Outside mode range"
+  | c <= 0 = error "selectMCDF: Token consumption/production must be a positive integer"
+  | mode > n && mode < 1 = error "selectMCDF: Outside mode range"
   | not $ sufficient_tokens c sig = NullS
-  | otherwise = consumed_tokens +-+ selectMCDF n c cts (take mode s ++ [dropS c sig] ++ drop (mode+1) s)
-  where sig = s !! mode
+  | otherwise = consumed_tokens +-+ selectMCDF n c cts (take (mode-1) s ++ [dropS c sig] ++ drop (mode) s)
+  where sig = s !! (mode-1)
         consumed_tokens = takeS c sig
 
 
@@ -125,8 +124,8 @@ buffer c (m1, m2) (mode:-cts) s1 s2
 --------------------------------------------
 -- Tests
 --------------------------------------------
-ct = signal [0,1,0,2,0,2,1,0]
-ct2 = signal [0,1,0,1,0,1,1,0]
+ct = signal [1,2,1,3,1,3,2,1]
+ct2 = signal [1,2,1,2,1,2,1,2]
 inp1 = signal [1 .. 30]
 inp2 = signal [31 .. 60]
 inp3 = signal [61 .. 90]
