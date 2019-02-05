@@ -58,6 +58,7 @@ Library
                  , ForSyDe.Shallow.MoC.SADF
                  , ForSyDe.Shallow.MoC.DomainInterface
                  , ForSyDe.Shallow.MoC.MoCInterface
+                 , ForSyDe.Shallow.MoC.Reconfig
                  , ForSyDe.Shallow.Utility
                  , ForSyDe.Shallow.Utility.PolyArith
                  , ForSyDe.Shallow.Utility.Queue
@@ -99,13 +100,13 @@ test-suite properties
   type:             exitcode-stdio-1.0
   hs-source-dirs:   test
   main-is:          Props.hs
-  ghc-options:      -threaded 
+  ghc-options:      -threaded
   build-depends:    base>=4.6 && <6
                   , QuickCheck
-                  , forsyde-shallow  
+                  , forsyde-shallow
                   , old-time
-                  , directory >= 1.2.2             
-                  , process >= 1.2.3   
+                  , directory >= 1.2.2
+                  , process >= 1.2.3
                   , random
   other-modules:
       Paths_forsyde_shallow
