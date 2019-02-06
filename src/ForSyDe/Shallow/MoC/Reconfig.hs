@@ -21,7 +21,7 @@ module ForSyDe.Shallow.MoC.Reconfig (
   -- * Reconfigurable Processes
   -- | Process constructors for an experimental MoC called ReconDF
   actor11ReconDF, actor21ReconDF, actor31ReconDF, actor41ReconDF, actor51ReconDF,
-  actor12ReconDF
+  actor12ReconDF, actor22ReconDF, actor32ReconDF, actor42ReconDF, actor52ReconDF
   -- Tests
   ,output
   ) where
@@ -100,17 +100,52 @@ actor51ReconDF c0 ct as bs cs ds es = outs
         cl = delay [c0] cl1
 
 
--- > ReconDF actors with two output
+-- > ReconDF actors with two outputs
 
--- | The process constructor 'actor11ReconDF' ...
+-- | The process constructor 'actor12ReconDF' ...
 actor12ReconDF :: (Int, (Int, Int), [a] -> ([b], [c]))
                -> Signal (Action (Int, (Int, Int), [a] -> ([b], [c])))
                -> Signal a
                -> (Signal b, Signal c)
 actor12ReconDF c0 ct x = (out1, out2)
-  where (cl1, out1, out2) = unzipCtrl2 $ mapReconDF (funPack ct) cl x
-        cl = delay [(\(c, p, f) -> (c, p, \a -> [f a])) c0] cl1
+  where (cl1, out1, out2) = unzipCtrl2 $ mapReconDF (funPackS ct) cl x
+        cl = delay [funPack c0] cl1
 
+-- | The process constructor 'actor22ReconDF' ...
+actor22ReconDF :: ((Int, Int), (Int, Int), [a] -> [b] -> ([c], [d]))
+               -> Signal (Action ((Int, Int), (Int, Int), [a] -> [b] -> ([c], [d])))
+               -> Signal a -> Signal b
+               -> (Signal c, Signal d)
+actor22ReconDF c0 ct as bs = (out1, out2)
+  where (cl1, out1, out2) = unzipCtrl2 $ zipWithReconDF (funPack2S ct) cl as bs
+        cl = delay [funPack2 c0] cl1
+
+-- | The process constructor 'actor32ReconDF' ...
+actor32ReconDF :: ((Int, Int, Int), (Int, Int), [a] -> [b] -> [c] -> ([d], [e]))
+               -> Signal (Action ((Int, Int, Int), (Int, Int), [a] -> [b] -> [c] -> ([d], [e])))
+               -> Signal a -> Signal b -> Signal c
+               -> (Signal d, Signal e)
+actor32ReconDF c0 ct as bs cs = (out1, out2)
+  where (cl1, out1, out2) = unzipCtrl2 $ zipWith3ReconDF (funPack3S ct) cl as bs cs
+        cl = delay [funPack3 c0] cl1
+
+-- | The process constructor 'actor42ReconDF' ...
+actor42ReconDF :: ((Int, Int, Int, Int), (Int, Int), [a] -> [b] -> [c] -> [d] -> ([e], [f]))
+               -> Signal (Action ((Int, Int, Int, Int), (Int, Int), [a] -> [b] -> [c] -> [d] -> ([e], [f])))
+               -> Signal a -> Signal b -> Signal c -> Signal d
+               -> (Signal e, Signal f)
+actor42ReconDF c0 ct as bs cs ds = (out1, out2)
+  where (cl1, out1, out2) = unzipCtrl2 $ zipWith4ReconDF (funPack4S ct) cl as bs cs ds
+        cl = delay [funPack4 c0] cl1
+
+-- | The process constructor 'actor52ReconDF' ...
+actor52ReconDF :: ((Int, Int, Int, Int, Int), (Int, Int), [a] -> [b] -> [c] -> [d] -> [e] -> ([f], [g]))
+               -> Signal (Action ((Int, Int, Int, Int, Int), (Int, Int), [a] -> [b] -> [c] -> [d] -> [e] -> ([f], [g])))
+               -> Signal a -> Signal b -> Signal c -> Signal d -> Signal e
+               -> (Signal f, Signal g)
+actor52ReconDF c0 ct as bs cs ds es = (out1, out2)
+  where (cl1, out1, out2) = unzipCtrl2 $ zipWith5ReconDF (funPack5S ct) cl as bs cs ds es
+        cl = delay [funPack5 c0] cl1
 
 
 ------------------------------------------------------------------------
@@ -256,29 +291,6 @@ unzipCtrl2 ((s1, [(s2, s3)]) :- ss)
 
 
 
-unzip3ReconDF :: Signal (a, [b], [c], [d]) -> (Signal a, Signal b, Signal c, Signal d)
-unzip3ReconDF NullS = (NullS, NullS, NullS, NullS)
-unzip3ReconDF ((s1, s2, s3, s4) :- ss) = (signal [s1] +-+ sr1, signal s2 +-+ sr2,
-                                          signal s3 +-+ sr3, signal s4 +-+ sr4)
-  where (sr1, sr2, sr3, sr4) = unzip3ReconDF ss
-
-
-unzip4ReconDF :: Signal (a, [b], [c], [d], [e])
-              -> (Signal a, Signal b, Signal c, Signal d, Signal e)
-unzip4ReconDF NullS = (NullS, NullS, NullS, NullS, NullS)
-unzip4ReconDF ((s1, s2, s3, s4, s5) :- ss) = (signal [s1] +-+ sr1, signal s2 +-+ sr2,
-                                              signal s3 +-+ sr3, signal s4 +-+ sr4,
-                                              signal s5 +-+ sr5)
-  where (sr1, sr2, sr3, sr4, sr5) = unzip4ReconDF ss
-
-
-unzip5ReconDF :: Signal (a, [b], [c], [d], [e], [f])
-              -> (Signal a, Signal b, Signal c, Signal d, Signal e, Signal f)
-unzip5ReconDF NullS = (NullS, NullS, NullS, NullS, NullS, NullS)
-unzip5ReconDF ((s1, s2, s3, s4, s5, s6) :- ss) = (signal [s1] +-+ sr1, signal s2 +-+ sr2,
-                                                  signal s3 +-+ sr3, signal s4 +-+ sr4,
-                                                  signal s5 +-+ sr5, signal s6 +-+ sr6)
-  where (sr1, sr2, sr3, sr4, sr5, sr6) = unzip5ReconDF ss
 
 ------------------------------------------------------------------------
 --
@@ -296,40 +308,64 @@ sufficient_tokens n (_:-xs)
      sufficient_tokens (n-1) xs
 
 
-funPack :: Signal (Action (con, prod, [a] -> y))
-        -> Signal (Action (con, prod, [a] -> [y]))
-funPack NullS = NullS
-funPack (Fire :- ss) = signal [Fire] +-+ funPack ss
-funPack (Reconfig (c, p, f) :- ss) = signal [Reconfig (c, p, \a -> [f a])] +-+ funPack ss
+funPack :: (con, prod, [a] -> y) -> (con, prod, [a] -> [y])
+funPack (c, p, f) = (c, p, \x -> [f x])
+
+funPack2 :: (con, prod, [a] -> [b] -> y) -> (con, prod, [a] -> [b] -> [y])
+funPack2 (c, p, f) = (c, p, \x1 x2 -> [f x1 x2])
+
+funPack3 :: (con, prod, [a] -> [b] -> [c] -> y) -> (con, prod, [a] -> [b] -> [c] -> [y])
+funPack3 (c, p, f) = (c, p, \x1 x2 x3 -> [f x1 x2 x3])
+
+funPack4 :: (con, prod, [a] -> [b] -> [c] -> [d] -> y)
+         -> (con, prod, [a] -> [b] -> [c] -> [d] -> [y])
+funPack4 (c, p, f) = (c, p, \x1 x2 x3 x4 -> [f x1 x2 x3 x4])
+
+funPack5 :: (con, prod, [a] -> [b] -> [c] -> [d] -> [e] -> y)
+         -> (con, prod, [a] -> [b] -> [c] -> [d] -> [e] -> [y])
+funPack5 (c, p, f) = (c, p, \x1 x2 x3 x4 x5 -> [f x1 x2 x3 x4 x5])
 
 
+funPackS :: Signal (Action (con, prod, [a] -> y))
+         -> Signal (Action (con, prod, [a] -> [y]))
+funPackS NullS = NullS
+funPackS (Fire :- ss) = signal [Fire] +-+ funPackS ss
+funPackS (Reconfig s :- ss) = signal [Reconfig (funPack s)] +-+ funPackS ss
 
+funPack2S :: Signal (Action (con, prod, [a] -> [b] -> y))
+          -> Signal (Action (con, prod, [a] -> [b] -> [y]))
+funPack2S NullS = NullS
+funPack2S (Fire :- ss) = signal [Fire] +-+ funPack2S ss
+funPack2S (Reconfig s :- ss) = signal [Reconfig (funPack2 s)] +-+ funPack2S ss
 
+funPack3S :: Signal (Action (con, prod, [a] -> [b] -> [c] -> y))
+          -> Signal (Action (con, prod, [a] -> [b] -> [c] -> [y]))
+funPack3S NullS = NullS
+funPack3S (Fire :- ss) = signal [Fire] +-+ funPack3S ss
+funPack3S (Reconfig s :- ss) = signal [Reconfig (funPack3 s)] +-+ funPack3S ss
 
+funPack4S :: Signal (Action (con, prod, [a] -> [b] -> [c] -> [d] -> y))
+          -> Signal (Action (con, prod, [a] -> [b] -> [c] -> [d] -> [y]))
+funPack4S NullS = NullS
+funPack4S (Fire :- ss) = signal [Fire] +-+ funPack4S ss
+funPack4S (Reconfig s :- ss) = signal [Reconfig (funPack4 s)] +-+ funPack4S ss
 
-
-
-
-
-
-
-
-
-
-
-
-
+funPack5S :: Signal (Action (con, prod, [a] -> [b] -> [c] -> [d] -> [e] -> y))
+          -> Signal (Action (con, prod, [a] -> [b] -> [c] -> [d] -> [e] -> [y]))
+funPack5S NullS = NullS
+funPack5S (Fire :- ss) = signal [Fire] +-+ funPack5S ss
+funPack5S (Reconfig s :- ss) = signal [Reconfig (funPack5 s)] +-+ funPack5S ss
 
 
 
 -- Tests
 
-c0 = (1,1,\[a] -> [a])
-c1 = (1,1,\[a] -> [2*a])
-c2 = (1,2,\[a] -> [a, 3*a])
+c0 = (1,(1,1),\[a] -> ([a], [(-a)]))
+c1 = (1,(1,0),\[a] -> ([2*a], []))
+c2 = (1,(0,2),\[a] -> ([], [a, 3*a]))
 
 reconfigSig = signal [Fire, Fire, Reconfig c1, Fire, Reconfig c2, Fire, Fire]
 inputSig = signal [1..10]
 
-output = actor11ReconDF c0 reconfigSig inputSig
+output = actor12ReconDF c0 reconfigSig inputSig
 -- expected answer: {1,2,6,4,12,5,15}
