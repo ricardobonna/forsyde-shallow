@@ -21,7 +21,8 @@ module ForSyDe.Shallow.MoC.Reconfig (
   -- * Reconfigurable Processes
   -- | Process constructors for an experimental MoC called ReconDF
   actor11ReconDF, actor21ReconDF, actor31ReconDF, actor41ReconDF, actor51ReconDF,
-  actor12ReconDF, actor22ReconDF, actor32ReconDF, actor42ReconDF, actor52ReconDF
+  actor12ReconDF, actor22ReconDF, actor32ReconDF, actor42ReconDF, actor52ReconDF,
+  actor13ReconDF, actor23ReconDF, actor33ReconDF, actor43ReconDF, actor53ReconDF
   -- Tests
   ,output
   ) where
@@ -148,6 +149,54 @@ actor52ReconDF c0 ct as bs cs ds es = (out1, out2)
         cl = delay [funPack5 c0] cl1
 
 
+-- > ReconDF actors with three outputs
+
+-- | The process constructor 'actor13ReconDF' ...
+actor13ReconDF :: (Int, (Int, Int, Int), [a] -> ([b], [c], [d]))
+               -> Signal (Action (Int, (Int, Int, Int), [a] -> ([b], [c], [d])))
+               -> Signal a
+               -> (Signal b, Signal c, Signal d)
+actor13ReconDF c0 ct x = (out1, out2, out3)
+  where (cl1, out1, out2, out3) = unzipCtrl3 $ mapReconDF (funPackS ct) cl x
+        cl = delay [funPack c0] cl1
+
+-- | The process constructor 'actor23ReconDF' ...
+actor23ReconDF :: ((Int, Int), (Int, Int, Int), [a] -> [b] -> ([c], [d], [e]))
+               -> Signal (Action ((Int, Int), (Int, Int, Int), [a] -> [b] -> ([c], [d], [e])))
+               -> Signal a -> Signal b
+               -> (Signal c, Signal d, Signal e)
+actor23ReconDF c0 ct as bs = (out1, out2, out3)
+  where (cl1, out1, out2, out3) = unzipCtrl3 $ zipWithReconDF (funPack2S ct) cl as bs
+        cl = delay [funPack2 c0] cl1
+
+-- | The process constructor 'actor33ReconDF' ...
+actor33ReconDF :: ((Int, Int, Int), (Int, Int, Int), [a] -> [b] -> [c] -> ([d], [e], [f]))
+               -> Signal (Action ((Int, Int, Int), (Int, Int, Int), [a] -> [b] -> [c] -> ([d], [e], [f])))
+               -> Signal a -> Signal b -> Signal c
+               -> (Signal d, Signal e, Signal f)
+actor33ReconDF c0 ct as bs cs = (out1, out2, out3)
+  where (cl1, out1, out2, out3) = unzipCtrl3 $ zipWith3ReconDF (funPack3S ct) cl as bs cs
+        cl = delay [funPack3 c0] cl1
+
+-- | The process constructor 'actor43ReconDF' ...
+actor43ReconDF :: ((Int, Int, Int, Int), (Int, Int, Int), [a] -> [b] -> [c] -> [d] -> ([e], [f], [g]))
+               -> Signal (Action ((Int, Int, Int, Int), (Int, Int, Int), [a] -> [b] -> [c] -> [d] -> ([e], [f], [g])))
+               -> Signal a -> Signal b -> Signal c -> Signal d
+               -> (Signal e, Signal f, Signal g)
+actor43ReconDF c0 ct as bs cs ds = (out1, out2, out3)
+  where (cl1, out1, out2, out3) = unzipCtrl3 $ zipWith4ReconDF (funPack4S ct) cl as bs cs ds
+        cl = delay [funPack4 c0] cl1
+
+-- | The process constructor 'actor53ReconDF' ...
+actor53ReconDF :: ((Int, Int, Int, Int, Int), (Int, Int, Int), [a] -> [b] -> [c] -> [d] -> [e] -> ([f], [g], [h]))
+               -> Signal (Action ((Int, Int, Int, Int, Int), (Int, Int, Int), [a] -> [b] -> [c] -> [d] -> [e] -> ([f], [g], [h])))
+               -> Signal a -> Signal b -> Signal c -> Signal d -> Signal e
+               -> (Signal f, Signal g, Signal h)
+actor53ReconDF c0 ct as bs cs ds es = (out1, out2, out3)
+  where (cl1, out1, out2, out3) = unzipCtrl3 $ zipWith5ReconDF (funPack5S ct) cl as bs cs ds es
+        cl = delay [funPack5 c0] cl1
+
+
 ------------------------------------------------------------------------
 -- COMBINATIONAL PROCESS CONSTRUCTORS (not exported)
 ------------------------------------------------------------------------
@@ -268,7 +317,7 @@ zipWith5ReconDF (Fire:-cts) (cl:-cls) as bs cs ds es
 -- unzipSADF Processes (not exported)
 ------------------------------------------------------------------------
 
-unzipCtrl :: Signal ((con, Int, fun), [b]) -> (Signal (con, Int, fun), Signal b)
+unzipCtrl :: Signal ((con, Int, fun), [a]) -> (Signal (con, Int, fun), Signal a)
 unzipCtrl NullS = (NullS, NullS)
 unzipCtrl ((s1, s2) :- ss)
   | length s2 == 0 = (signal [s1] +-+ sr1, sr2)
@@ -278,7 +327,8 @@ unzipCtrl ((s1, s2) :- ss)
         (_,p,_) = s1
 
 
-unzipCtrl2 :: Signal ((con, (Int, Int), fun), [([b], [c])]) -> (Signal (con, (Int, Int), fun), Signal b, Signal c)
+unzipCtrl2 :: Signal ((con, (Int, Int), fun), [([a], [b])])
+           -> (Signal (con, (Int, Int), fun), Signal a, Signal b)
 unzipCtrl2 NullS = (NullS, NullS, NullS)
 unzipCtrl2 ((s1, []) :- ss) = (signal [s1] +-+ sr1, sr2, sr3)
   where (sr1, sr2, sr3) = unzipCtrl2 ss
@@ -289,6 +339,45 @@ unzipCtrl2 ((s1, [(s2, s3)]) :- ss)
         (_,(p1,p2),_) = s1
 
 
+unzipCtrl3 :: Signal ((con, (Int, Int, Int), fun), [([a], [b], [c])])
+           -> (Signal (con, (Int, Int, Int), fun), Signal a, Signal b, Signal c)
+unzipCtrl3 NullS = (NullS, NullS, NullS, NullS)
+unzipCtrl3 ((s1, []) :- ss) = (signal [s1] +-+ sr1, sr2, sr3, sr4)
+  where (sr1, sr2, sr3, sr4) = unzipCtrl3 ss
+unzipCtrl3 ((s1, [(s2, s3, s4)]) :- ss)
+  | length s2 /= p1 || length s3 /= p2
+    || length s4 /= p3 = error "unzipCtrl3: Wrong number of produced tokens"
+  | otherwise = (signal [s1] +-+ sr1, signal s2 +-+ sr2, signal s3 +-+ sr3, signal s4 +-+ sr4)
+  where (sr1, sr2, sr3, sr4) = unzipCtrl3 ss
+        (_,(p1,p2,p3),_) = s1
+
+
+unzipCtrl4 :: Signal ((con, (Int, Int, Int, Int), fun), [([a], [b], [c], [d])])
+           -> (Signal (con, (Int, Int, Int, Int), fun), Signal a, Signal b, Signal c, Signal d)
+unzipCtrl4 NullS = (NullS, NullS, NullS, NullS, NullS)
+unzipCtrl4 ((s1, []) :- ss) = (signal [s1] +-+ sr1, sr2, sr3, sr4, sr5)
+  where (sr1, sr2, sr3, sr4, sr5) = unzipCtrl4 ss
+unzipCtrl4 ((s1, [(s2, s3, s4, s5)]) :- ss)
+  | length s2 /= p1 || length s3 /= p2 || length s4 /= p3
+    || length s5 /= p4 = error "unzipCtrl4: Wrong number of produced tokens"
+  | otherwise = (signal [s1] +-+ sr1, signal s2 +-+ sr2, signal s3 +-+ sr3,
+                 signal s4 +-+ sr4, signal s5 +-+ sr5)
+  where (sr1, sr2, sr3, sr4, sr5) = unzipCtrl4 ss
+        (_,(p1,p2,p3,p4),_) = s1
+
+
+unzipCtrl5 :: Signal ((con, (Int, Int, Int, Int, Int), fun), [([a], [b], [c], [d], [e])])
+           -> (Signal (con, (Int, Int, Int, Int, Int), fun), Signal a, Signal b, Signal c, Signal d, Signal e)
+unzipCtrl5 NullS = (NullS, NullS, NullS, NullS, NullS, NullS)
+unzipCtrl5 ((s1, []) :- ss) = (signal [s1] +-+ sr1, sr2, sr3, sr4, sr5, sr6)
+  where (sr1, sr2, sr3, sr4, sr5, sr6) = unzipCtrl5 ss
+unzipCtrl5 ((s1, [(s2, s3, s4, s5, s6)]) :- ss)
+  | length s2 /= p1 || length s3 /= p2 || length s4 /= p3
+    || length s5 /= p4 || length s6 /= p5 = error "unzipCtrl5: Wrong number of produced tokens"
+  | otherwise = (signal [s1] +-+ sr1, signal s2 +-+ sr2, signal s3 +-+ sr3,
+                 signal s4 +-+ sr4, signal s5 +-+ sr5, signal s6 +-+ sr6)
+  where (sr1, sr2, sr3, sr4, sr5, sr6) = unzipCtrl5 ss
+        (_,(p1,p2,p3,p4, p5),_) = s1
 
 
 
