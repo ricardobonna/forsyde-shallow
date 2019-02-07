@@ -22,7 +22,9 @@ module ForSyDe.Shallow.MoC.Reconfig (
   -- | Process constructors for an experimental MoC called ReconDF
   actor11ReconDF, actor21ReconDF, actor31ReconDF, actor41ReconDF, actor51ReconDF,
   actor12ReconDF, actor22ReconDF, actor32ReconDF, actor42ReconDF, actor52ReconDF,
-  actor13ReconDF, actor23ReconDF, actor33ReconDF, actor43ReconDF, actor53ReconDF
+  actor13ReconDF, actor23ReconDF, actor33ReconDF, actor43ReconDF, actor53ReconDF,
+  actor14ReconDF, actor24ReconDF, actor34ReconDF, actor44ReconDF, actor54ReconDF,
+  actor15ReconDF, actor25ReconDF, actor35ReconDF, actor45ReconDF, actor55ReconDF
   -- Tests
   ,output
   ) where
@@ -194,6 +196,102 @@ actor53ReconDF :: ((Int, Int, Int, Int, Int), (Int, Int, Int), [a] -> [b] -> [c]
                -> (Signal f, Signal g, Signal h)
 actor53ReconDF c0 ct as bs cs ds es = (out1, out2, out3)
   where (cl1, out1, out2, out3) = unzipCtrl3 $ zipWith5ReconDF (funPack5S ct) cl as bs cs ds es
+        cl = delay [funPack5 c0] cl1
+
+
+-- > ReconDF actors with four outputs
+
+-- | The process constructor 'actor14ReconDF' ...
+actor14ReconDF :: (Int, (Int, Int, Int, Int), [a] -> ([b], [c], [d], [e]))
+               -> Signal (Action (Int, (Int, Int, Int, Int), [a] -> ([b], [c], [d], [e])))
+               -> Signal a
+               -> (Signal b, Signal c, Signal d, Signal e)
+actor14ReconDF c0 ct x = (out1, out2, out3, out4)
+  where (cl1, out1, out2, out3, out4) = unzipCtrl4 $ mapReconDF (funPackS ct) cl x
+        cl = delay [funPack c0] cl1
+
+-- | The process constructor 'actor24ReconDF' ...
+actor24ReconDF :: ((Int, Int), (Int, Int, Int, Int), [a] -> [b] -> ([c], [d], [e], [f]))
+               -> Signal (Action ((Int, Int), (Int, Int, Int, Int), [a] -> [b] -> ([c], [d], [e], [f])))
+               -> Signal a -> Signal b
+               -> (Signal c, Signal d, Signal e, Signal f)
+actor24ReconDF c0 ct as bs = (out1, out2, out3, out4)
+  where (cl1, out1, out2, out3, out4) = unzipCtrl4 $ zipWithReconDF (funPack2S ct) cl as bs
+        cl = delay [funPack2 c0] cl1
+
+-- | The process constructor 'actor34ReconDF' ...
+actor34ReconDF :: ((Int, Int, Int), (Int, Int, Int, Int), [a] -> [b] -> [c] -> ([d], [e], [f], [g]))
+               -> Signal (Action ((Int, Int, Int), (Int, Int, Int, Int), [a] -> [b] -> [c] -> ([d], [e], [f], [g])))
+               -> Signal a -> Signal b -> Signal c
+               -> (Signal d, Signal e, Signal f, Signal g)
+actor34ReconDF c0 ct as bs cs = (out1, out2, out3, out4)
+  where (cl1, out1, out2, out3, out4) = unzipCtrl4 $ zipWith3ReconDF (funPack3S ct) cl as bs cs
+        cl = delay [funPack3 c0] cl1
+
+-- | The process constructor 'actor44ReconDF' ...
+actor44ReconDF :: ((Int, Int, Int, Int), (Int, Int, Int, Int), [a] -> [b] -> [c] -> [d] -> ([e], [f], [g], [h]))
+               -> Signal (Action ((Int, Int, Int, Int), (Int, Int, Int, Int), [a] -> [b] -> [c] -> [d] -> ([e], [f], [g], [h])))
+               -> Signal a -> Signal b -> Signal c -> Signal d
+               -> (Signal e, Signal f, Signal g, Signal h)
+actor44ReconDF c0 ct as bs cs ds = (out1, out2, out3, out4)
+  where (cl1, out1, out2, out3, out4) = unzipCtrl4 $ zipWith4ReconDF (funPack4S ct) cl as bs cs ds
+        cl = delay [funPack4 c0] cl1
+
+-- | The process constructor 'actor54ReconDF' ...
+actor54ReconDF :: ((Int, Int, Int, Int, Int), (Int, Int, Int, Int), [a] -> [b] -> [c] -> [d] -> [e] -> ([f], [g], [h], [i]))
+               -> Signal (Action ((Int, Int, Int, Int, Int), (Int, Int, Int, Int), [a] -> [b] -> [c] -> [d] -> [e] -> ([f], [g], [h], [i])))
+               -> Signal a -> Signal b -> Signal c -> Signal d -> Signal e
+               -> (Signal f, Signal g, Signal h, Signal i)
+actor54ReconDF c0 ct as bs cs ds es = (out1, out2, out3, out4)
+  where (cl1, out1, out2, out3, out4) = unzipCtrl4 $ zipWith5ReconDF (funPack5S ct) cl as bs cs ds es
+        cl = delay [funPack5 c0] cl1
+
+
+-- > ReconDF actors with five outputs
+
+-- | The process constructor 'actor15ReconDF' ...
+actor15ReconDF :: (Int, (Int, Int, Int, Int, Int), [a] -> ([b], [c], [d], [e], [f]))
+               -> Signal (Action (Int, (Int, Int, Int, Int, Int), [a] -> ([b], [c], [d], [e], [f])))
+               -> Signal a
+               -> (Signal b, Signal c, Signal d, Signal e, Signal f)
+actor15ReconDF c0 ct x = (out1, out2, out3, out4, out5)
+  where (cl1, out1, out2, out3, out4, out5) = unzipCtrl5 $ mapReconDF (funPackS ct) cl x
+        cl = delay [funPack c0] cl1
+
+-- | The process constructor 'actor25ReconDF' ...
+actor25ReconDF :: ((Int, Int), (Int, Int, Int, Int, Int), [a] -> [b] -> ([c], [d], [e], [f], [g]))
+               -> Signal (Action ((Int, Int), (Int, Int, Int, Int, Int), [a] -> [b] -> ([c], [d], [e], [f], [g])))
+               -> Signal a -> Signal b
+               -> (Signal c, Signal d, Signal e, Signal f, Signal g)
+actor25ReconDF c0 ct as bs = (out1, out2, out3, out4, out5)
+  where (cl1, out1, out2, out3, out4, out5) = unzipCtrl5 $ zipWithReconDF (funPack2S ct) cl as bs
+        cl = delay [funPack2 c0] cl1
+
+-- | The process constructor 'actor35ReconDF' ...
+actor35ReconDF :: ((Int, Int, Int), (Int, Int, Int, Int, Int), [a] -> [b] -> [c] -> ([d], [e], [f], [g], [h]))
+               -> Signal (Action ((Int, Int, Int), (Int, Int, Int, Int, Int), [a] -> [b] -> [c] -> ([d], [e], [f], [g], [h])))
+               -> Signal a -> Signal b -> Signal c
+               -> (Signal d, Signal e, Signal f, Signal g, Signal h)
+actor35ReconDF c0 ct as bs cs = (out1, out2, out3, out4, out5)
+  where (cl1, out1, out2, out3, out4, out5) = unzipCtrl5 $ zipWith3ReconDF (funPack3S ct) cl as bs cs
+        cl = delay [funPack3 c0] cl1
+
+-- | The process constructor 'actor45ReconDF' ...
+actor45ReconDF :: ((Int, Int, Int, Int), (Int, Int, Int, Int, Int), [a] -> [b] -> [c] -> [d] -> ([e], [f], [g], [h], [i]))
+               -> Signal (Action ((Int, Int, Int, Int), (Int, Int, Int, Int, Int), [a] -> [b] -> [c] -> [d] -> ([e], [f], [g], [h], [i])))
+               -> Signal a -> Signal b -> Signal c -> Signal d
+               -> (Signal e, Signal f, Signal g, Signal h, Signal i)
+actor45ReconDF c0 ct as bs cs ds = (out1, out2, out3, out4, out5)
+  where (cl1, out1, out2, out3, out4, out5) = unzipCtrl5 $ zipWith4ReconDF (funPack4S ct) cl as bs cs ds
+        cl = delay [funPack4 c0] cl1
+
+-- | The process constructor 'actor55ReconDF' ...
+actor55ReconDF :: ((Int, Int, Int, Int, Int), (Int, Int, Int, Int, Int), [a] -> [b] -> [c] -> [d] -> [e] -> ([f], [g], [h], [i], [j]))
+               -> Signal (Action ((Int, Int, Int, Int, Int), (Int, Int, Int, Int, Int), [a] -> [b] -> [c] -> [d] -> [e] -> ([f], [g], [h], [i], [j])))
+               -> Signal a -> Signal b -> Signal c -> Signal d -> Signal e
+               -> (Signal f, Signal g, Signal h, Signal i, Signal j)
+actor55ReconDF c0 ct as bs cs ds es = (out1, out2, out3, out4, out5)
+  where (cl1, out1, out2, out3, out4, out5) = unzipCtrl5 $ zipWith5ReconDF (funPack5S ct) cl as bs cs ds es
         cl = delay [funPack5 c0] cl1
 
 
