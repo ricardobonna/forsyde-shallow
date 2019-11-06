@@ -7,8 +7,8 @@
 --
 -- Maintainer  :  forsyde-dev@ict.kth.se
 -- Stability   :  experimental
--- Portability :  portable 
--- 
+-- Portability :  portable
+--
 -- The synchronuous library defines process constructors and processes
 -- for the synchronous computational model. A process constructor is a
 -- higher order function which together with combinational function(s)
@@ -26,9 +26,12 @@ module ForSyDe.Shallow.MoC.Synchronous (
 
   -- ** Stochastic Processes
   -- | Library of stochastic process constructors
-  module ForSyDe.Shallow.MoC.Synchronous.Stochastic
+  module ForSyDe.Shallow.MoC.Synchronous.Stochastic,
+
+  module ForSyDe.Shallow.MoC.Synchronous.OverhaulSY
   ) where
 
 import ForSyDe.Shallow.MoC.Synchronous.Lib
 import ForSyDe.Shallow.MoC.Synchronous.Process
 import ForSyDe.Shallow.MoC.Synchronous.Stochastic
+import ForSyDe.Shallow.MoC.Synchronous.OverhaulSY
