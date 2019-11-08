@@ -11,7 +11,7 @@
 -- The synchronous process library overhauled for classified purposes
 -----------------------------------------------------------------------------
 module ForSyDe.Shallow.MoC.Synchronous.OverhaulSY (
-
+  constant, delta, sat, varSat
   ) where
 
 import ForSyDe.Shallow.MoC.Synchronous.Lib
@@ -50,3 +50,17 @@ instance (Ord a) => Ord (Signal a) where
 
 instance (Real a) => Real (Signal a) where
   toRational = toRational . headS
+
+constant :: a -> Signal a
+constant = signal . repeat
+
+delta :: (Num a) => Signal a -> Signal Bool -> Signal a
+delta sig = zipWith3SY deltaFunc sig (delaySY 0 sig)
+  where deltaFunc _ _ True = 0
+        deltaFunc s ds False = s - ds
+
+sat :: (Ord a) => a -> a -> Signal a -> Signal a
+sat x y = mapSY (max x . min y)
+
+varSat :: (Ord a) => Signal a -> Signal a -> Signal a -> Signal a
+varSat sl sh = max sl . min sh
