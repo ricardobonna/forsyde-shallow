@@ -8,10 +8,11 @@
 -- Stability   :  experimental
 -- Portability :  portable
 --
--- The synchronous process library overhauled for classified purposes
+-- The synchronous process library overhauled for unknown purposes
 -----------------------------------------------------------------------------
 module ForSyDe.Shallow.MoC.Synchronous.OverhaulSY (
-  constant, delta, sat, varSat, safeDiv, folpf, integrate
+  constant, delta, sat, varSat, safeDiv, folpf, integrate, switch, greater,
+  smaller, equal, grequal, ltequal, (|||), (&&&)
   ) where
 
 import ForSyDe.Shallow.MoC.Synchronous.Lib
@@ -51,6 +52,11 @@ instance (Ord a) => Ord (Signal a) where
 instance (Real a) => Real (Signal a) where
   toRational = toRational . headS
 
+
+---------------------------------------------
+------------- Usefull library ---------------
+---------------------------------------------
+
 constant :: a -> Signal a
 constant = signal . repeat
 
@@ -65,6 +71,9 @@ sat (minVal, maxVal) = mapSY (max minVal . min maxVal)
 varSat :: (Ord a) => Signal a -> Signal a -> Signal a -> Signal a
 varSat sl sh = max sl . min sh
 
+switch :: Signal Bool -> Signal a -> Signal a -> Signal a
+switch = zipWith3SY (\s x1 x2 -> if s then x1 else x2)
+
 safeDiv :: (Fractional a, Ord a) => a -> Signal a -> Signal a -> Signal a
 safeDiv e = zipWithSY (safeDivFunc e)
   where safeDivFunc eps num den
@@ -74,19 +83,34 @@ safeDiv e = zipWithSY (safeDivFunc e)
 
 folpf :: (Fractional a) => (a, a) -> Signal Bool -> Signal a -> Signal a
 folpf (period, tau) reset inp = out
-  where out = zipWith4SY folpfFunc reset inp dinp dout
-        dinp = delaySY Abst (mapSY Prst inp)
-        dout = delaySY 0 out
-        a = period / (2*tau+period)
-        b = (2*tau-period) / (2*tau+period)
-        folpfFunc True x _ _ = x
-        folpfFunc _ x Abst _ = x
-        folpfFunc False x (Prst dx) dy = b*dy + a*(x + dx)
+  where out = headS inp :- switch (tailS reset) (tailS inp) (b*out + a*(tailS inp + inp))
+        a = constant $ period / (2*tau+period)
+        b = constant $ (2*tau-period) / (2*tau+period)
 
-integrate :: (Fractional a) => (a, a) -> Signal Bool -> Signal a -> Signal a
-integrate (period, x0) reset inp = out
-  where out = zipWith4SY integrateFunc reset inp dinp dout
-        dinp = delaySY 0 inp
-        dout = delaySY x0 out
-        integrateFunc True _ _ _ = x0
-        integrateFunc False x dx dy = dy + period/2*(x + dx)
+integrate :: (Fractional a) => a -> Signal Bool -> Signal a -> Signal a -> Signal a
+integrate period reset inp x0 = out
+  where out = headS x0 :- switch (tailS reset) (tailS x0) (out + a*(tailS inp + inp))
+        a = constant $ period / 2
+
+greater :: (Ord a) => Signal a -> Signal a -> Signal Bool
+greater = zipWithSY (>)
+
+equal :: (Eq a) => Signal a -> Signal a -> Signal Bool
+equal = zipWithSY (==)
+
+smaller :: (Ord a) => Signal a -> Signal a -> Signal Bool
+smaller = zipWithSY (<)
+
+grequal :: (Ord a) => Signal a -> Signal a -> Signal Bool
+grequal = zipWithSY (>=)
+
+ltequal :: (Ord a) => Signal a -> Signal a -> Signal Bool
+ltequal = zipWithSY (<=)
+
+(|||) :: Signal Bool -> Signal Bool -> Signal Bool
+(|||) = zipWithSY (||)
+infixr 2 |||
+
+(&&&) :: Signal Bool -> Signal Bool -> Signal Bool
+(&&&) = zipWithSY (&&)
+infixr 3 &&&
