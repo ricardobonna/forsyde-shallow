@@ -1,7 +1,8 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  ForSyDe.Shallow.MoC.Synchronous.OverhaulSY
--- Copyright   :  (c) ForSyDe Group, KTH 2007-2008
+-- Copyright   :  (c) Ricardo Bonna, 2019
+--                ForSyDe Group, KTH 2007-2008
 -- License     :  BSD-style (see the file LICENSE)
 --
 -- Maintainer  :  ricardobonna@gmail.com
@@ -11,8 +12,10 @@
 -- The synchronous process library overhauled for unknown purposes
 -----------------------------------------------------------------------------
 module ForSyDe.Shallow.MoC.Synchronous.OverhaulSY (
-  constant, delta, sat, varSat, safeDiv, folpf, integrate, switch, greater,
-  smaller, equal, grequal, ltequal, (|||), (&&&)
+  (\==), (\!=), (\>), (\<), (\>=), (\<=), (\||), (\&&), true, false,
+  constant, delta, sat, varSat, safeDiv, folpf, integrate, switch,
+  switch3, latch, rateLim,
+  x, dx, y, z, e
   ) where
 
 import ForSyDe.Shallow.MoC.Synchronous.Lib
@@ -54,16 +57,59 @@ instance (Real a) => Real (Signal a) where
 
 
 ---------------------------------------------
+------------- Bool operations ---------------
+---------------------------------------------
+
+(\==) :: (Eq a) => Signal a -> Signal a -> Signal Bool
+(\==) = zipWithSY (==)
+infix 4 \==
+
+(\!=) :: (Eq a) => Signal a -> Signal a -> Signal Bool
+(\!=) = zipWithSY (/=)
+infix 4 \!=
+
+(\>) :: (Ord a) => Signal a -> Signal a -> Signal Bool
+(\>) = zipWithSY (>)
+infix 4 \>
+
+(\<) :: (Ord a) => Signal a -> Signal a -> Signal Bool
+(\<) = zipWithSY (<)
+infix 4 \<
+
+(\>=) :: (Ord a) => Signal a -> Signal a -> Signal Bool
+(\>=) = zipWithSY (>=)
+infix 4 \>=
+
+(\<=) :: (Ord a) => Signal a -> Signal a -> Signal Bool
+(\<=) = zipWithSY (<=)
+infix 4 \<=
+
+(\||) :: Signal Bool -> Signal Bool -> Signal Bool
+(\||) = zipWithSY (||)
+infixr 2 \||
+
+(\&&) :: Signal Bool -> Signal Bool -> Signal Bool
+(\&&) = zipWithSY (&&)
+infixr 3 \&&
+
+true :: Signal Bool
+true = constant True
+
+false :: Signal Bool
+false = constant False
+
+
+---------------------------------------------
 ------------- Usefull library ---------------
 ---------------------------------------------
 
 constant :: a -> Signal a
 constant = signal . repeat
 
-delta :: (Num a) => Signal Bool -> Signal a -> Signal a
-delta reset sig = zipWith3SY deltaFunc reset sig (delaySY 0 sig)
-  where deltaFunc True _ _ = 0
-        deltaFunc False s ds = s - ds
+delta :: (Num a) => Signal Bool -- ^ Reset signal
+                 -> Signal a    -- ^ Input signal
+                 -> Signal a    -- ^ Output signal
+delta reset inp = switch reset (constant 0) (inp - (0:-inp))
 
 sat :: (Ord a) => (a, a) -> Signal a -> Signal a
 sat (minVal, maxVal) = mapSY (max minVal . min maxVal)
@@ -74,6 +120,9 @@ varSat sl sh = max sl . min sh
 switch :: Signal Bool -> Signal a -> Signal a -> Signal a
 switch = zipWith3SY (\s x1 x2 -> if s then x1 else x2)
 
+switch3 :: Signal Bool -> Signal a -> Signal Bool -> Signal a -> Signal a -> Signal a
+switch3 = zipWith5SY (\s1 x1 s2 x2 x3 -> if s1 then x1 else if s2 then x2 else x3)
+
 safeDiv :: (Fractional a, Ord a) => a -> Signal a -> Signal a -> Signal a
 safeDiv e = zipWithSY (safeDivFunc e)
   where safeDivFunc eps num den
@@ -82,35 +131,42 @@ safeDiv e = zipWithSY (safeDivFunc e)
           where safeDen = max (abs eps) (abs den)
 
 folpf :: (Fractional a) => (a, a) -> Signal Bool -> Signal a -> Signal a
-folpf (period, tau) reset inp = out
-  where out = headS inp :- switch (tailS reset) (tailS inp) (b*out + a*(tailS inp + inp))
+folpf _ NullS _ = NullS
+folpf _ _ NullS = NullS
+folpf (period, tau) (_:-reset) inp = out
+  where out = headS inp :- switch reset (tailS inp) (b*out + a*(tailS inp + inp))
         a = constant $ period / (2*tau+period)
         b = constant $ (2*tau-period) / (2*tau+period)
 
 integrate :: (Fractional a) => a -> Signal Bool -> Signal a -> Signal a -> Signal a
-integrate period reset inp x0 = out
-  where out = headS x0 :- switch (tailS reset) (tailS x0) (out + a*(tailS inp + inp))
+integrate _ NullS _ _ = NullS
+integrate _ _ NullS _ = NullS
+integrate _ _ _ NullS = NullS
+integrate period (_:-reset) inp (x0:-x0s) = out
+  where out = x0 :- switch reset x0s (out + a*(tailS inp + inp))
         a = constant $ period / 2
 
-greater :: (Ord a) => Signal a -> Signal a -> Signal Bool
-greater = zipWithSY (>)
+latch :: Signal Bool -> Signal Bool -> Signal Bool
+latch NullS _ = NullS
+latch _ NullS = NullS
+latch (s:-ss) (r:-rr) = q
+  where q = (s && not r) :- switch3 rr false ss true q
 
-equal :: (Eq a) => Signal a -> Signal a -> Signal Bool
-equal = zipWithSY (==)
+rateLim :: (Num a, Ord a) => (a, a) -> Signal a -> Signal a
+rateLim _ NullS = NullS
+rateLim (minRate, maxRate) (s:-ss) = out
+  where out = s :- switch3 (ss - out \> top) (out + top)
+                    (ss - out \< negate botton) (out - botton) ss
+        top = constant maxRate
+        botton = constant minRate
 
-smaller :: (Ord a) => Signal a -> Signal a -> Signal Bool
-smaller = zipWithSY (<)
 
-grequal :: (Ord a) => Signal a -> Signal a -> Signal Bool
-grequal = zipWithSY (>=)
+---------------------------------------------
+--------------- Library tests ---------------
+---------------------------------------------
 
-ltequal :: (Ord a) => Signal a -> Signal a -> Signal Bool
-ltequal = zipWithSY (<=)
-
-(|||) :: Signal Bool -> Signal Bool -> Signal Bool
-(|||) = zipWithSY (||)
-infixr 2 |||
-
-(&&&) :: Signal Bool -> Signal Bool -> Signal Bool
-(&&&) = zipWithSY (&&)
-infixr 3 &&&
+x = sin (signal [0.0, 0.001..])
+dx = delta false x / constant 0.001
+y = cos (signal [0.0, 0.001..])
+z = takeS 200000 (y - dx)
+e = maximum $ fromSignal (tailS z)

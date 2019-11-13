@@ -4,7 +4,7 @@
 -- Module  :  ForSyDe.Shallow.MoC.Synchronous.Lib
 -- Copyright   :  (c) ForSyDe Group, KTH 2007-2008
 -- License     :  BSD-style (see the file LICENSE)
--- 
+--
 -- Maintainer  :  forsyde-dev@ict.kth.se
 -- Stability   :  experimental
 -- Portability :  portable
@@ -15,8 +15,8 @@ module ForSyDe.Shallow.MoC.Synchronous.Lib (
   -- ** Combinational process constructors
   -- | Combinational process constructors are used for processes that
   --   do not have a state.
-  mapSY, zipWithSY, zipWith3SY, 
-  zipWith4SY, mapxSY, zipWithxSY,
+  mapSY, zipWithSY, zipWith3SY, zipWith4SY,
+  zipWith5SY, mapxSY, zipWithxSY,
   combSY, comb2SY, comb3SY, comb4SY,
   -- ** Sequential process constructors
   -- | Sequential process constructors are used for processes that
@@ -24,14 +24,14 @@ module ForSyDe.Shallow.MoC.Synchronous.Lib (
   delaySY, delaynSY,
   scanlSY, scanl2SY, scanl3SY, scanldSY, scanld2SY,
   scanld3SY, mooreSY, moore2SY, moore3SY, mealySY,
-  mealy2SY, mealy3SY, sourceSY, 
+  mealy2SY, mealy3SY, sourceSY,
   filterSY, fillSY, holdSY,
   -- ** Synchronous Processes
   -- | The library contains a few simple processes that are applicable
   --   to many cases.
-  whenSY, zipSY, zip3SY, zip4SY, zip5SY, zip6SY, 
+  whenSY, zipSY, zip3SY, zip4SY, zip5SY, zip6SY,
   unzipSY, unzip3SY, unzip4SY, unzip5SY, unzip6SY,
-  zipxSY, unzipxSY, 
+  zipxSY, unzipxSY,
   fstSY, sndSY
   ) where
 
@@ -50,7 +50,7 @@ import ForSyDe.Shallow.Core
 mapSY :: (a -> b) -> Signal a -> Signal b
 mapSY _ NullS   = NullS
 mapSY f (x:-xs) = f x :- (mapSY f xs)
-  
+
 -- | The process constructor 'zipWithSY' takes a combinational
 -- function as argument and returns a process with two input signals
 -- and one output signal.
@@ -75,14 +75,27 @@ zipWith3SY f (x:-xs) (y:-ys) (z:-zs)
 -- | The process constructor 'zipWith4SY' takes a combinational
 -- function as argument and returns a process with four input signals
 -- and one output signal.
-zipWith4SY ::    (a -> b -> c -> d -> e) -> Signal a -> Signal b 
+zipWith4SY ::    (a -> b -> c -> d -> e) -> Signal a -> Signal b
       -> Signal c -> Signal d -> Signal e
 zipWith4SY _ NullS   _   _   _  = NullS
 zipWith4SY _ _   NullS   _   _  = NullS
 zipWith4SY _ _   _   NullS   _  = NullS
 zipWith4SY _ _   _   _   NullS  = NullS
-zipWith4SY f (w:-ws) (x:-xs) (y:-ys) (z:-zs) 
+zipWith4SY f (w:-ws) (x:-xs) (y:-ys) (z:-zs)
   = f w x y z :- (zipWith4SY f ws xs ys zs)
+
+-- | The process constructor 'zipWith5SY' takes a combinational
+-- function as argument and returns a process with five input signals
+-- and one output signal.
+zipWith5SY ::    (a -> b -> c -> d -> e -> f) -> Signal a -> Signal b
+      -> Signal c -> Signal d -> Signal e -> Signal f
+zipWith5SY _ NullS   _   _   _   _ = NullS
+zipWith5SY _ _   NullS   _   _   _ = NullS
+zipWith5SY _ _   _   NullS   _   _ = NullS
+zipWith5SY _ _   _   _   NullS   _ = NullS
+zipWith5SY _ _   _   _   _   NullS = NullS
+zipWith5SY f (v:-vs) (w:-ws) (x:-xs) (y:-ys) (z:-zs)
+  = f v w x y z :- (zipWith5SY f vs ws xs ys zs)
 
 -- | The process constructor 'combSY' is an alias to 'mapSY' and
 -- behaves exactly in the same way.
@@ -93,18 +106,18 @@ combSY = mapSY
 -- behaves exactly in the same way.
 comb2SY :: (a -> b -> c) -> Signal a -> Signal b -> Signal c
 comb2SY = zipWithSY
-    
+
 -- | The process constructor 'comb3SY' is an alias to 'zipWith3SY' and
 -- behaves exactly in the same way.
 comb3SY :: (a -> b -> c -> d) -> Signal a -> Signal b -> Signal c -> Signal d
 comb3SY = zipWith3SY
-    
+
 -- | The process constructor 'comb4SY' is an alias to 'zipWith4SY' and
 -- behaves exactly in the same way.
 comb4SY :: (a -> b -> c -> d -> e) -> Signal a -> Signal b
     -> Signal c -> Signal d -> Signal e
 comb4SY = zipWith4SY
-   
+
 -- | The process constructor 'mapxSY' creates a process network that
 -- maps a function onto all signals in a vector of signals. See 'mapV'.
 --
@@ -112,7 +125,7 @@ comb4SY = zipWith4SY
 -- >>> let s2 = signal [10,20,30,40]
 -- >>> let s3 = signal [100,200,300]
 -- >>> mapxSY (+1) $ vector [s1,s2,s3]
--- <{2,3,4,5},{11,21,31,41},{101,201,301}> 
+-- <{2,3,4,5},{11,21,31,41},{101,201,301}>
 mapxSY :: (a -> b) -> Vector (Signal a) -> Vector (Signal b)
 mapxSY f = mapV (mapSY f)
 
@@ -153,11 +166,11 @@ delaySY e es = e:-es
 -- >>> delaynSY 0 3 $ signal [1,2,3,4]
 -- {0,0,0,1,2,3,4}
 delaynSY :: a        -- ^Initial state
-         -> Int      -- ^ Delay cycles 
+         -> Int      -- ^ Delay cycles
          -> Signal a -- ^Input signal
          -> Signal a -- ^Output signal
 delaynSY e n xs | n <= 0 = xs
-                | otherwise = e :- delaynSY e (n-1) xs 
+                | otherwise = e :- delaynSY e (n-1) xs
 
 -- | The process constructor 'scanlSY' is used to construct a finite
 -- state machine process without output decoder. It takes an initial
@@ -168,16 +181,16 @@ delaynSY e n xs | n <= 0 = xs
 --
 -- >>> scanlSY (+) 0 (signal [1,2,3,4])
 -- {1,3,6,10}
--- 
+--
 -- This is in contrast to the function 'scanldSY', which has its
 -- current state as its output value.
 scanlSY :: (a -> b -> a) -- ^Combinational function for next state
                          -- decoder
        -> a              -- ^Initial state
-       -> Signal b       -- ^ Input signal 
+       -> Signal b       -- ^ Input signal
        -> Signal a       -- ^ Output signal
 scanlSY f mem xs = s'
-  where s' = zipWithSY f (delaySY mem s') xs 
+  where s' = zipWithSY f (delaySY mem s') xs
 
 -- | The process constructor 'scanl2SY' behaves like 'scanlSY', but
 -- has two input signals.
@@ -208,17 +221,17 @@ scanldSY :: (a -> b -> a) -- ^Combinational function for next state
     -> Signal b           -- ^ Input signal
     -> Signal a           -- ^ Output signal
 scanldSY f mem xs = s'
-    where s' = delaySY mem $ zipWithSY f s' xs 
+    where s' = delaySY mem $ zipWithSY f s' xs
 
 -- | The process constructor 'scanld2SY' behaves like 'scanldSY', but
 -- has two input signals.
-scanld2SY ::    (a -> b -> c -> a) -> a -> Signal b -> Signal c 
+scanld2SY ::    (a -> b -> c -> a) -> a -> Signal b -> Signal c
      -> Signal a
 scanld2SY f mem xs ys = s'
     where s' = delaySY mem $ zipWith3SY f s' xs ys
 
 -- | The process constructor 'scanld3SY' behaves like 'scanldSY', but has three input signals.
-scanld3SY :: (a -> b -> c -> d -> a) -> a -> Signal b 
+scanld3SY :: (a -> b -> c -> d -> a) -> a -> Signal b
           -> Signal c -> Signal d -> Signal a
 scanld3SY f mem xs ys zs = s'
   where s' = delaySY mem $ zipWith4SY f s' xs ys zs
@@ -242,19 +255,19 @@ mooreSY :: (a -> b -> a) -- ^Combinational function for next state
         -> a             -- ^Initial state
         -> Signal b      -- ^Input signal
         -> Signal c      -- ^Output signal
-mooreSY nextState output initial 
+mooreSY nextState output initial
     = mapSY output . (scanldSY nextState initial)
 
 -- | The process constructor 'moore2SY' behaves like 'mooreSY', but
 -- has two input signals.
-moore2SY ::   (a -> b -> c -> a) -> (a -> d) -> a -> Signal b 
+moore2SY ::   (a -> b -> c -> a) -> (a -> d) -> a -> Signal b
          -> Signal c -> Signal d
 moore2SY nextState output initial inp1 inp2 =
   mapSY output (scanld2SY nextState initial inp1 inp2)
 
 -- | The process constructor 'moore3SY' behaves like 'mooreSY', but
 -- has three input signals.
-moore3SY :: (a -> b -> c -> d -> a) -> (a -> e) -> a -> Signal b 
+moore3SY :: (a -> b -> c -> d -> a) -> (a -> e) -> a -> Signal b
          -> Signal c -> Signal d -> Signal e
 moore3SY nextState output initial inp1 inp2 inp3 =
   mapSY output (scanld3SY nextState initial inp1 inp2 inp3)
@@ -278,7 +291,7 @@ mealySY :: (a -> b -> a) -- ^Combinational function for next state
                          -- decoder
        -> (a -> b -> c)  -- ^Combinational function for output decoder
        -> a              -- ^Initial state
-       -> Signal b       -- ^Input signal 
+       -> Signal b       -- ^Input signal
        -> Signal c       -- ^Output signal
 mealySY nextState output initial sig =
   zipWithSY output state sig
@@ -289,14 +302,14 @@ mealySY nextState output initial sig =
 mealy2SY :: (a -> b -> c -> a) -> (a -> b -> c -> d) -> a
          -> Signal b -> Signal c -> Signal d
 mealy2SY nextState output initial inp1 inp2 =
-  zipWith3SY output (scanld2SY nextState initial inp1 inp2) inp1 inp2  
+  zipWith3SY output (scanld2SY nextState initial inp1 inp2) inp1 inp2
 
 -- | The process constructor 'mealy3SY' behaves like 'mealySY', but
 -- has three input signals.
 mealy3SY :: (a -> b -> c -> d -> a) -> (a -> b -> c -> d -> e) -> a
          -> Signal b -> Signal c -> Signal d -> Signal e
 mealy3SY nextState output initial inp1 inp2 inp3 =
-  zipWith4SY output (scanld3SY nextState initial inp1 inp2 inp3) inp1 inp2 inp3 
+  zipWith4SY output (scanld3SY nextState initial inp1 inp2 inp3) inp1 inp2 inp3
 
 -- | The process constructor 'filterSY' discards the values who do not
 -- fulfill a predicate given by a predicate function and replaces them
@@ -365,7 +378,7 @@ holdSY a xs = scanlSY hold a xs
 -- >>> let sig = signal [Prst 10, Prst 11, Prst 12, Prst 13, Prst 14, Prst 15]
 -- >>> sig `whenSY` clk
 -- {_,11,12,_,_,15}
-whenSY :: Signal (AbstExt a) -> Signal (AbstExt b) 
+whenSY :: Signal (AbstExt a) -> Signal (AbstExt b)
        -> Signal (AbstExt a)
 whenSY NullS   _          = NullS
 whenSY _       NullS      = NullS
@@ -383,14 +396,14 @@ zipSY _       _       = NullS
 
 -- | The process 'zip3SY' works as 'zipSY', but takes three input
 -- signals.
--- 
+--
 zip3SY :: Signal a -> Signal b -> Signal c -> Signal (a,b,c)
 zip3SY (x:-xs) (y:-ys) (z:-zs) = (x, y, z) :- zip3SY xs ys zs
 zip3SY _       _       _       = NullS
 
 -- | The process 'zip4SY' works as 'zipSY', but takes four input
 -- signals.
-zip4SY ::    Signal a -> Signal b -> Signal c -> Signal d 
+zip4SY ::    Signal a -> Signal b -> Signal c -> Signal d
       -> Signal (a,b,c,d)
 zip4SY (w:-ws) (x:-xs) (y:-ys) (z:-zs)
   = (w, x, y, z) :- zip4SY ws xs ys zs
@@ -400,7 +413,7 @@ zip4SY _ _ _ _ = NullS
 -- signals.
 zip5SY :: Signal a -> Signal b -> Signal c -> Signal d -> Signal e
        -> Signal (a,b,c,d,e)
-zip5SY (x1:-x1s) (x2:-x2s) (x3:-x3s) (x4:-x4s) (x5:-x5s) 
+zip5SY (x1:-x1s) (x2:-x2s) (x3:-x3s) (x4:-x4s) (x5:-x5s)
   = (x1,x2,x3,x4,x5) :- zip5SY x1s x2s x3s x4s x5s
 zip5SY _ _ _ _ _ = NullS
 
@@ -408,7 +421,7 @@ zip5SY _ _ _ _ _ = NullS
 -- signals.
 zip6SY :: Signal a -> Signal b -> Signal c -> Signal d -> Signal e
        -> Signal f -> Signal (a,b,c,d,e,f)
-zip6SY (x1:-x1s) (x2:-x2s) (x3:-x3s) (x4:-x4s) (x5:-x5s)  (x6:-x6s) 
+zip6SY (x1:-x1s) (x2:-x2s) (x3:-x3s) (x4:-x4s) (x5:-x5s)  (x6:-x6s)
     = (x1,x2,x3,x4,x5,x6) :- zip6SY x1s x2s x3s x4s x5s x6s
 zip6SY _ _ _ _ _ _ = NullS
 
@@ -428,7 +441,7 @@ unzip3SY ((x, y, z):-xyzs) = (x:-xs, y:-ys, z:-zs)
 
 -- | The process 'unzip4SY' works as 'unzipSY', but has four output
 -- signals.
-unzip4SY :: Signal (a,b,c,d) 
+unzip4SY :: Signal (a,b,c,d)
          -> (Signal a,Signal b,Signal c,Signal d)
 unzip4SY NullS      = (NullS, NullS, NullS, NullS)
 unzip4SY ((w,x,y,z):-wxyzs) = (w:-ws, x:-xs, y:-ys, z:-zs)
@@ -436,7 +449,7 @@ unzip4SY ((w,x,y,z):-wxyzs) = (w:-ws, x:-xs, y:-ys, z:-zs)
 
 -- | The process 'unzip5SY' works as 'unzipSY', but has four output
 -- signals.
-unzip5SY :: Signal (a,b,c,d,e) 
+unzip5SY :: Signal (a,b,c,d,e)
          -> (Signal a,Signal b,Signal c,Signal d,Signal e)
 unzip5SY NullS                  = (NullS, NullS, NullS, NullS,NullS)
 unzip5SY ((x1,x2,x3,x4,x5):-xs) = (x1:-x1s, x2:-x2s, x3:-x3s, x4:-x4s, x5:-x5s)
@@ -444,10 +457,10 @@ unzip5SY ((x1,x2,x3,x4,x5):-xs) = (x1:-x1s, x2:-x2s, x3:-x3s, x4:-x4s, x5:-x5s)
 
 -- | The process 'unzip6SY' works as 'unzipSY', but has four output
 -- signals.
-unzip6SY :: Signal (a,b,c,d,e,f) 
+unzip6SY :: Signal (a,b,c,d,e,f)
     -> (Signal a,Signal b,Signal c,Signal d,Signal e,Signal f)
 unzip6SY NullS = (NullS, NullS, NullS, NullS,NullS,NullS)
-unzip6SY ((x1,x2,x3,x4,x5,x6):-xs) 
+unzip6SY ((x1,x2,x3,x4,x5,x6):-xs)
   = (x1:-x1s, x2:-x2s, x3:-x3s, x4:-x4s, x5:-x5s, x6:-x6s)
   where (x1s, x2s, x3s, x4s, x5s, x6s) = unzip6SY xs
 
@@ -461,12 +474,12 @@ unzip6SY ((x1,x2,x3,x4,x5,x6):-xs)
 -- {<1,10,100>,<2,20,200>,<3,30,300>}
 zipxSY :: Vector (Signal a) -> Signal (Vector a)
 zipxSY = reduceV (zipWithSY (<+>)) . mapV (mapSY unitV)
-  
--- unsafe implementation! 
+
+-- unsafe implementation!
 -- zipxSY :: Vector (Signal a) -> Signal (Vector a)
 -- zipxSY NullV            = NullS
 -- zipxSY (NullS   :> xss) = zipxSY xss
--- zipxSY ((x:-xs) :> xss) = (x :> (mapV headS xss)) 
+-- zipxSY ((x:-xs) :> xss) = (x :> (mapV headS xss))
 --                           :- (zipxSY (xs :> (mapV tailS xss)))
 
 -- | The process 'unzipxSY' \"unzips\" a vector of signals into a
@@ -474,13 +487,13 @@ zipxSY = reduceV (zipWithSY (<+>)) . mapV (mapSY unitV)
 unzipxSY :: Signal (Vector a) -> Vector (Signal a)
 unzipxSY NullS            = NullV
 unzipxSY (NullV   :- vss) = unzipxSY vss
-unzipxSY ((v:>vs) :- vss) = (v :- (mapSY headV vss)) 
+unzipxSY ((v:>vs) :- vss) = (v :- (mapSY headV vss))
                             :> (unzipxSY (vs :- (mapSY tailV vss)))
 
 -- | The process 'fstSY' selects always the first value from a signal
 -- of pairs.
 fstSY :: Signal (a,b) -> Signal a
-fstSY = mapSY fst 
+fstSY = mapSY fst
 
 -- | The process 'sndSY' selects always the second value from a signal
 -- of pairs.
